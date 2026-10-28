@@ -2,58 +2,66 @@
 import streamlit as st
 import pandas as pd
 
-# Page configuration
 st.set_page_config(
-    page_title="Student Dashboard",
-    page_icon="🎓",
+    page_title="Expense Tracker",
+    page_icon="💰",
     layout="centered"
 )
 
-# App title
-st.title("🎓 Student Performance Dashboard")
-st.write("Welcome! Analyze your academic performance.")
+st.title("💰 Personal Expense Tracker")
+st.write("Track your daily expenses easily!")
 
-# User inputs
-name = st.text_input("Enter student name")
+# Initialize expense storage
+if "expenses" not in st.session_state:
+    st.session_state.expenses = []
 
-maths = st.number_input(
-    "Maths marks", min_value=0, max_value=100, value=75
-)
+# Expense input form
+with st.form("expense_form"):
+    expense_name = st.text_input("Expense name")
 
-science = st.number_input(
-    "Science marks", min_value=0, max_value=100, value=80
-)
-
-english = st.number_input(
-    "English marks", min_value=0, max_value=100, value=85
-)
-
-# Calculate results
-if st.button("Calculate Results"):
-    total = maths + science + english
-    percentage = total / 3
-
-    st.subheader("Your Results")
-
-    st.write(f"Student Name: {name or 'Student'}")
-    st.metric("Total Marks", f"{total}/300")
-    st.metric("Percentage", f"{percentage:.2f}%")
-
-    if percentage >= 90:
-        st.success("Excellent performance! 🏆")
-    elif percentage >= 60:
-        st.info("Good job! Keep improving. 👍")
-    else:
-        st.warning("Keep practicing. You can do it!")
-
-    # Display chart
-    marks_data = pd.DataFrame({
-        "Subject": ["Maths", "Science", "English"],
-        "Marks": [maths, science, english]
-    })
-
-    st.bar_chart(
-        marks_data.set_index("Subject")
+    amount = st.number_input(
+        "Amount (₹)",
+        min_value=0.0,
+        value=100.0,
+        step=10.0
     )
+
+    category = st.selectbox(
+        "Category",
+        ["Food", "Travel", "Shopping", "Bills", "Other"]
+    )
+
+    submitted = st.form_submit_button("Add Expense")
+
+    if submitted:
+        if expense_name.strip() and amount > 0:
+            st.session_state.expenses.append({
+                "Expense": expense_name,
+                "Amount (₹)": amount,
+                "Category": category
+            })
+            st.success("Expense added successfully!")
+        else:
+            st.error("Enter an expense name and an amount above zero.")
+
+# Show expenses
+if st.session_state.expenses:
+    df = pd.DataFrame(st.session_state.expenses)
+
+    st.subheader("📋 Your Expenses")
+    st.dataframe(df, use_container_width=True)
+
+    total = df["Amount (₹)"].sum()
+    st.metric("Total Expenses", f"₹{total:,.2f}")
+
+    st.subheader("📊 Expenses by Category")
+    category_totals = df.groupby("Category")["Amount (₹)"].sum()
+    st.bar_chart(category_totals)
+
+    if st.button("Clear All Expenses"):
+        st.session_state.expenses = []
+        st.rerun()
+else:
+    st.info("No expenses added yet. Add your first expense above!")
 
 st.caption("Built with Python and Streamlit")
